@@ -21,7 +21,7 @@ def generate_stars(count):
         stars.append(f"{x}px {y}px 0 rgba(255, 255, 255, {opacity})")
     return ", ".join(stars)
 
-# --- 辅助函数：生成 LUMINE 字母流星 (保留优化后的平衡版) ---
+# --- 辅助函数：生成 LUMINE 字母流星 ---
 def generate_lumine_stars(count):
     base_chars = list("LUMINE")
     num_sets = math.ceil(count / len(base_chars))
@@ -34,7 +34,7 @@ def generate_lumine_stars(count):
         left = random.randint(0, 100)
         top = random.randint(0, 2000)
         opacity = random.uniform(0.1, 0.4)
-        size = random.randint(5, 8) # 保持微小尺寸
+        size = random.randint(5, 8) 
         element = f'<div style="position: absolute; left: {left}vw; top: {top}px; color: rgba(255,255,255,{opacity}); font-size: {size}px; font-weight: 200; user-select: none;">{char}</div>'
         elements.append(element)
     return "".join(elements)
@@ -71,7 +71,7 @@ st.markdown(f"""
     /* --- 通用样式 --- */
     h1, h2, h3, p, div, span, label {{ color: #ffffff !important; font-family: 'Inter', sans-serif; }}
     [data-testid="stSidebar"] {{ background-color: rgba(0, 0, 0, 0.5) !important; backdrop-filter: blur(10px); border-right: 1px solid rgba(255,255,255,0.1); }}
-    .stTextInput input, .stSelectbox div[data-baseweb="select"] > div {{ background-color: rgba(255, 255, 255, 0.1) !important; border: 1px solid rgba(255, 255, 255, 0.2) !important; color: #fff !important; }}
+    .stTextInput input {{ background-color: rgba(255, 255, 255, 0.1) !important; border: 1px solid rgba(255, 255, 255, 0.2) !important; color: #fff !important; }}
     
     /* 上传框 */
     [data-testid="stFileUploader"] {{ margin-top: 10px; }}
@@ -142,45 +142,62 @@ if not loaded_from_secrets:
 else:
     aliyun_key = api_key_default
 
-layout_style = st.sidebar.selectbox("Composition", ("Stacked (Default)", "Asymmetric", "Diagonal", "Grouped"))
+# 【已移除】Composition 选择器代码
 client = None
 if aliyun_key:
     client = OpenAI(api_key=aliyun_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
 
-# --- 3. 核心逻辑 (恢复原始音乐逻辑) ---
+# --- 3. 核心逻辑 ---
 def search_music_from_itunes(query, style_category):
     base_url = "https://itunes.apple.com/search"
     clean_query = query.replace('，', ',').replace('、', ' ').replace('/', ' ').split(',')[0].strip()
     search_term = clean_query
-    
-    if style_category == "Traditional":
-        if "Chinese" not in search_term: search_term = f"Chinese Traditional {clean_query}"
+
+    scenery_instrumental_cats = ["Traditional", "Art", "Healing", "LightFood", "RichFood", "Urban", "Dim"]
+
+    if style_category in scenery_instrumental_cats:
+        extra_term = "Instrumental"
+        if style_category == "Traditional": extra_term = "Chinese Traditional Guzheng"
+        elif style_category == "Urban": extra_term = "Lofi Hip Hop Instrumental"
+        elif style_category == "Healing": extra_term = "Relaxing Piano"
+        elif style_category == "Dim": extra_term = "Dark Jazz Instrumental"
+        elif style_category == "Art": extra_term = "Cinematic Classical"
+        elif style_category in ["LightFood", "RichFood"]: extra_term = "Acoustic Guitar Instrumental"
+        
+        search_term = f"{clean_query} {extra_term}"
+
     elif style_category == "Industrial": search_term = f"{clean_query} Cinematic"
     elif style_category == "Sport": search_term = f"{clean_query} Workout Phonk"
-    elif style_category in ["LightFood", "RichFood", "Art", "Healing"]:
-        if "Instrumental" not in search_term and "Piano" not in search_term and "Guitar" not in search_term:
-             search_term = f"{search_term} Instrumental"
-        if style_category == "LightFood": search_term = f"{search_term} Relaxing"
-        elif style_category == "Healing": 
-            if "Guitar" in search_term: search_term = "Guitar Lullaby Instrumental"
-            else: search_term = "Relaxing Piano Music"
-    elif style_category == "Urban": search_term = f"{clean_query} Chill Lofi"
     elif style_category == "Cyber": search_term = f"{clean_query} Phonk"
-    if len(search_term.split()) > 5: search_term = " ".join(search_term.split()[-3:])
-    
+
+    if len(search_term.split()) > 6: search_term = " ".join(search_term.split()[-4:])
+
     try:
-        response = requests.get(base_url, params={"term": search_term, "media": "music", "entity": "song", "limit": 40}, timeout=10)
+        response = requests.get(base_url, params={"term": search_term, "media": "music", "entity": "song", "limit": 35}, timeout=10)
         data = response.json()
         if data.get('resultCount', 0) > 0:
             results = data['results']
-            # 只做基础过滤
-            safe_list = [r for r in results if "instrumental" in r.get('trackName','').lower() or "piano" in r.get('trackName','').lower() or "lofi" in r.get('trackName','').lower()]
-            if safe_list: results = safe_list
-            final_pool = [r for r in results if r.get('artworkUrl100')]
-            if not final_pool: final_pool = results
-            song = random.choice(final_pool)
-            return {"title": song.get('trackName'), "artist": song.get('artistName'), "audio_url": song.get('previewUrl'), "found": True}
-        else: return {"found": False}
+
+            if style_category in scenery_instrumental_cats:
+                 instrumental_keywords = ["instrumental", "piano", "guitar", "ambient", "lofi", "soundtrack", "guzheng", "orchestra"]
+                 strict_safe_list = [r for r in results if (any(k in r.get('trackName','').lower() + r.get('collectionName','').lower() for k in instrumental_keywords)) and r.get('trackExplicitness') != 'explicit']
+                 
+                 if strict_safe_list:
+                     results = strict_safe_list
+                 else:
+                     fallback_list = [r for r in results if ("instrumental" in r.get('trackName','').lower() or "piano" in r.get('trackName','').lower() or "lofi" in r.get('trackName','').lower()) and r.get('trackExplicitness') != 'explicit']
+                     if fallback_list: results = fallback_list
+            else:
+                safe_list = [r for r in results if "instrumental" in r.get('trackName','').lower() or "piano" in r.get('trackName','').lower() or "lofi" in r.get('trackName','').lower()]
+                if safe_list: results = safe_list
+
+            final_pool = [r for r in results if r.get('artworkUrl100') and r.get('previewUrl')]
+            if not final_pool: final_pool = [r for r in results if r.get('previewUrl')]
+            
+            if final_pool:
+                song = random.choice(final_pool)
+                return {"title": song.get('trackName'), "artist": song.get('artistName'), "audio_url": song.get('previewUrl'), "found": True}
+        return {"found": False}
     except Exception as e: return {"found": False, "error": str(e)}
 
 def calculate_brightness(image):
@@ -206,7 +223,6 @@ elif uploaded_file and client:
     time.sleep(0.5)
     
     try:
-        # --- 恢复原始图片读取 (不压缩) ---
         image = Image.open(uploaded_file)
         img_w, img_h = image.size
         display_height = int(700 * (img_h / img_w))
@@ -214,7 +230,6 @@ elif uploaded_file and client:
         bytes_data = uploaded_file.getvalue()
         base64_image = base64.b64encode(bytes_data).decode('utf-8')
 
-        # --- 恢复原始 Prompt (包含 Sport/Happy 等) ---
         prompt_text = """
         You are a minimalist aesthetic director. Analyze image. Return JSON.
         【1. Style】Traditional(Guzheng), Sport(Phonk), Happy(Pop), Industrial(Cinematic), Cyber(Phonk), Art(Piano), Healing(Lullaby), LightFood(Guitar), RichFood(Jazz), Urban(Lofi), Dim(Jazz).
@@ -236,7 +251,6 @@ elif uploaded_file and client:
         layout_pos = ai_result.get("layout_position", "bottom").lower()
         lyrics_list = ai_result.get("lyrics", [])
 
-        # 视觉混合模式
         is_food = style_cat in ["LightFood", "RichFood"]
         if is_food: op_high, op_low, blend_mode = "0.3)", "0.05)", "normal"
         elif brightness_val < 70: op_high, op_low, blend_mode = "0.5)", "0.15)", "multiply"
@@ -295,30 +309,10 @@ elif uploaded_file and client:
             box_align = "center"
 
         lyric_line_css = "margin: 5px 0; text-align: center;"
+        
+        # 【修改点】移除了复杂的排列逻辑，仅保留默认的堆叠显示
         lyrics_wrapper_css = f"display: flex; flex-direction: column; align-items: {box_align};"
-
-        if layout_style == "Asymmetric":
-            formatted_lyrics = [
-                f'<div class="lyric-line" style="text-align: left; margin-left: 0;">{lyrics_list[0]}</div>',
-                f'<div class="lyric-line" style="text-align: center; margin: 15px 0;">{lyrics_list[1]}</div>' if len(lyrics_list) > 1 else "",
-                f'<div class="lyric-line" style="text-align: right; margin-right: 0;">{lyrics_list[2]}</div>' if len(lyrics_list) > 2 else ""
-            ]
-            lyrics_html = "".join(formatted_lyrics)
-            lyrics_wrapper_css = "display: flex; flex-direction: column; width: 100%;"
-        elif layout_style == "Diagonal":
-            formatted_lyrics = []
-            for i, line in enumerate(lyrics_list):
-                formatted_lyrics.append(f'<div class="lyric-line" style="text-align: left; margin-left: {i * 40}px;">{line}</div>')
-            lyrics_html = "".join(formatted_lyrics)
-        elif layout_style == "Grouped":
-            formatted_lyrics = []
-            if len(lyrics_list) > 0:
-                formatted_lyrics.append(f'<div><div class="lyric-line">{lyrics_list[0]}</div></div>')
-                if len(lyrics_list) > 1:
-                    formatted_lyrics.append(f'<div style="margin-top:25px;"><div class="lyric-line">{lyrics_list[-1]}</div></div>')
-            lyrics_html = "".join(formatted_lyrics)
-        else:
-            lyrics_html = "".join([f'<div class="lyric-line">{line}</div>' for line in lyrics_list])
+        lyrics_html = "".join([f'<div class="lyric-line">{line}</div>' for line in lyrics_list])
 
         final_html = f"""
         <style>
@@ -337,8 +331,8 @@ elif uploaded_file and client:
             .overlay {{ position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: {overlay_css}; mix-blend-mode: {blend_mode}; pointer-events: none; z-index: 1; }}
             .lyrics-box {{ position: absolute; {box_css} z-index: 999; cursor: grab; {lyrics_wrapper_css} }}
             .vertical-wrapper {{ writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 4px; height: 350px; display: flex; gap: 15px; align-items: center; }}
-            .lyric-line {{ 
-                font-family: {config['font']}; font-size: {'36px' if 'Script' in config['font'] else '28px'}; 
+            .lyric-line {{
+                font-family: {config['font']}; font-size: {'36px' if 'Script' in config['font'] else '28px'};
                 color: {config['color']}; text-shadow: 0 2px 4px rgba(0,0,0,0.9);
                 font-weight: 400; line-height: 1.5; padding: 0 10px; {lyric_line_css}
             }}
@@ -358,7 +352,7 @@ elif uploaded_file and client:
             let active = false;
             let currentX; let currentY; let initialX; let initialY; let xOffset = 0; let yOffset = 0;
             function dragStart(e) {{
-                if (e.type === "touchstart") {{ initialX = e.touches[0].clientX - xOffset; initialY = e.touches[0].clientY - yOffset; }} 
+                if (e.type === "touchstart") {{ initialX = e.touches[0].clientX - xOffset; initialY = e.touches[0].clientY - yOffset; }}
                 else {{ initialX = e.clientX - xOffset; initialY = e.clientY - yOffset; }}
                 if (dragItem.contains(e.target)) {{ active = true; }}
             }}
@@ -366,7 +360,7 @@ elif uploaded_file and client:
             function drag(e) {{
                 if (active) {{
                     e.preventDefault();
-                    if (e.type === "touchmove") {{ currentX = e.touches[0].clientX - initialX; currentY = e.touches[0].clientY - initialY; }} 
+                    if (e.type === "touchmove") {{ currentX = e.touches[0].clientX - initialX; currentY = e.touches[0].clientY - initialY; }}
                     else {{ currentX = e.clientX - initialX; currentY = e.clientY - initialY; }}
                     xOffset = currentX; yOffset = currentY;
                     setTranslate(currentX, currentY, dragItem);
