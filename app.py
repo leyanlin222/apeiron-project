@@ -21,7 +21,7 @@ def generate_stars(count):
         stars.append(f"{x}px {y}px 0 rgba(255, 255, 255, {opacity})")
     return ", ".join(stars)
 
-# --- 新增辅助函数：生成 LUMINE 字母流星 ---
+# --- 辅助函数：生成 LUMINE 字母流星 (保留优化后的平衡版) ---
 def generate_lumine_stars(count):
     base_chars = list("LUMINE")
     num_sets = math.ceil(count / len(base_chars))
@@ -34,134 +34,66 @@ def generate_lumine_stars(count):
         left = random.randint(0, 100)
         top = random.randint(0, 2000)
         opacity = random.uniform(0.1, 0.4)
-        size = random.randint(5, 8)
+        size = random.randint(5, 8) # 保持微小尺寸
         element = f'<div style="position: absolute; left: {left}vw; top: {top}px; color: rgba(255,255,255,{opacity}); font-size: {size}px; font-weight: 200; user-select: none;">{char}</div>'
         elements.append(element)
     return "".join(elements)
 
-# 生成三层星星
+# 生成星空
 stars_small = generate_stars(700)
 stars_medium = generate_stars(200)
 stars_large = generate_stars(100)
-# 生成 LUMINE 字母层
 lumine_stars_html = generate_lumine_stars(24)
 
 # --- CSS 视觉环境 ---
 st.markdown(f"""
 <style>
-    /* --- 全局重置 --- */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400&display=swap');
     
     .stApp {{ background: transparent !important; }}
     header, footer {{ visibility: hidden !important; }}
 
-    /* --- 独立的深空银河背景层 --- */
+    /* --- 银河背景 --- */
     .galaxy-bg {{
-        position: fixed;
-        top: 0; left: 0;
-        width: 100vw; height: 100vh;
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
         background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
-        z-index: -100;
-        overflow: hidden;
+        z-index: -100; overflow: hidden;
     }}
-
-    .star-layer {{
-        position: absolute; top: 0; left: 0;
-        width: 1px; height: 1px; background: transparent; z-index: -99;
-    }}
-    
-    /* LUMINE 字母层样式 */
-    .lumine-layer {{
-        position: absolute; top: 0; left: 0;
-        width: 100%; height: 100%; 
-        z-index: -98;
-        animation: starMove 130s linear infinite;
-    }}
+    .star-layer {{ position: absolute; top: 0; left: 0; width: 1px; height: 1px; background: transparent; z-index: -99; }}
+    .lumine-layer {{ position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -98; animation: starMove 130s linear infinite; }}
     
     .stars-1 {{ box-shadow: {stars_small}; animation: starMove 100s linear infinite; }}
     .stars-2 {{ box-shadow: {stars_medium}; width: 2px; height: 2px; animation: starMove 150s linear infinite; }}
     .stars-3 {{ box-shadow: {stars_large}; width: 3px; height: 3px; animation: starMove 200s linear infinite; }}
 
-    @keyframes starMove {{
-        from {{ transform: translateY(0px); }}
-        to {{ transform: translateY(-2000px); }}
-    }}
+    @keyframes starMove {{ from {{ transform: translateY(0px); }} to {{ transform: translateY(-2000px); }} }}
 
-    /* --- 字体颜色 --- */
-    h1, h2, h3, p, div, span, label {{
-        color: #ffffff !important;
-        font-family: 'Inter', sans-serif;
-    }}
-
-    /* --- 侧边栏 --- */
-    [data-testid="stSidebar"] {{
-        background-color: rgba(0, 0, 0, 0.5) !important;
-        backdrop-filter: blur(10px);
-        border-right: 1px solid rgba(255,255,255,0.1);
-    }}
-
-    /* --- 输入框 --- */
-    .stTextInput input, .stSelectbox div[data-baseweb="select"] > div {{
-        background-color: rgba(255, 255, 255, 0.1) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-        color: #fff !important;
-    }}
-
-    /* --- 上传组件优化 --- */
+    /* --- 通用样式 --- */
+    h1, h2, h3, p, div, span, label {{ color: #ffffff !important; font-family: 'Inter', sans-serif; }}
+    [data-testid="stSidebar"] {{ background-color: rgba(0, 0, 0, 0.5) !important; backdrop-filter: blur(10px); border-right: 1px solid rgba(255,255,255,0.1); }}
+    .stTextInput input, .stSelectbox div[data-baseweb="select"] > div {{ background-color: rgba(255, 255, 255, 0.1) !important; border: 1px solid rgba(255, 255, 255, 0.2) !important; color: #fff !important; }}
+    
+    /* 上传框 */
     [data-testid="stFileUploader"] {{ margin-top: 10px; }}
-    
-    [data-testid="stFileUploader"] section {{
-        background-color: rgba(255, 255, 255, 0.1) !important; 
-        border: 1px dashed rgba(255, 255, 255, 0.4) !important;
-        border-radius: 12px;
-        padding: 30px;
-        transition: all 0.3s;
-    }}
-    
-    [data-testid="stFileUploader"] section:hover {{
-        background-color: rgba(255, 255, 255, 0.2) !important;
-        border-color: #fff !important;
-    }}
-
-    [data-testid="stFileUploader"] small, 
-    [data-testid="stFileUploader"] span, 
-    [data-testid="stFileUploader"] label {{
-        color: rgba(255, 255, 255, 0.9) !important;
-    }}
-    
-    [data-testid="stFileUploader"] svg {{
-        filter: brightness(0) invert(1) !important;
-        opacity: 0.8;
-    }}
-    
+    [data-testid="stFileUploader"] section {{ background-color: rgba(255, 255, 255, 0.1) !important; border: 1px dashed rgba(255, 255, 255, 0.4) !important; border-radius: 12px; padding: 30px; transition: all 0.3s; }}
+    [data-testid="stFileUploader"] section:hover {{ background-color: rgba(255, 255, 255, 0.2) !important; border-color: #fff !important; }}
+    [data-testid="stFileUploader"] small, [data-testid="stFileUploader"] span, [data-testid="stFileUploader"] label {{ color: rgba(255, 255, 255, 0.9) !important; }}
+    [data-testid="stFileUploader"] svg {{ filter: brightness(0) invert(1) !important; opacity: 0.8; }}
     [data-testid="stFileUploader"] button {{ display: none; }}
 
-    /* --- 标题样式升级 (APEIRON) --- */
+    /* 标题 APEIRON (无署名) */
     h2 {{
-        text-align: center; 
-        font-weight: 200 !important; 
-        font-size: 3.5rem !important;
-        letter-spacing: 14px !important; 
-        text-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.3);
-        margin-bottom: 40px;
-        margin-top: 20px;
-        text-transform: uppercase;
+        text-align: center; font-weight: 200 !important; font-size: 3.5rem !important;
+        letter-spacing: 14px !important; text-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.3);
+        margin-bottom: 40px; margin-top: 20px; text-transform: uppercase;
     }}
 
-    /* --- 球体动画 --- */
-    .blob-wrapper {{
-        display: flex; justify-content: center; align-items: center;
-        height: 350px; width: 100%; position: relative;
-    }}
+    /* 球体动画 */
+    .blob-wrapper {{ display: flex; justify-content: center; align-items: center; height: 350px; width: 100%; position: relative; }}
     .blob {{
-        width: 220px; height: 220px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: inset 0 0 30px rgba(255,255,255,0.05), 0 0 20px rgba(255,255,255,0.05);
-        backdrop-filter: blur(12px);
-        z-index: 1;
-        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-        transition: all 0.5s ease;
+        width: 220px; height: 220px; background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: inset 0 0 30px rgba(255,255,255,0.05), 0 0 20px rgba(255,255,255,0.05);
+        backdrop-filter: blur(12px); z-index: 1; border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transition: all 0.5s ease;
     }}
     .blob.idle {{ animation: liquid-morph 12s ease-in-out infinite; }}
     @keyframes liquid-morph {{
@@ -171,10 +103,8 @@ st.markdown(f"""
         100% {{ border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; transform: rotate(360deg) scale(1); }}
     }}
     .blob.processing {{
-        width: 150px; height: 150px;
-        background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(118,75,162,0.4));
-        box-shadow: 0 0 50px rgba(118, 75, 162, 0.8);
-        animation: chaos-morph 0.6s linear infinite;
+        width: 150px; height: 150px; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(118,75,162,0.4));
+        box-shadow: 0 0 50px rgba(118, 75, 162, 0.8); animation: chaos-morph 0.6s linear infinite;
     }}
     @keyframes chaos-morph {{
         0% {{ border-radius: 50%; transform: scale(1); }}
@@ -183,47 +113,17 @@ st.markdown(f"""
         75% {{ border-radius: 40% 60% 60% 40% / 60% 40% 40% 60%; }}
         100% {{ border-radius: 50%; transform: scale(1); }}
     }}
-
-    /* --- 📱 手机端适配 (Mobile Responsive) --- */
-    @media only screen and (max-width: 600px) {{
-        h2 {{
-            font-size: 2rem !important;
-            letter-spacing: 4px !important;
-            margin-top: 10px !important;
-            margin-bottom: 20px !important;
-        }}
-        .blob-wrapper {{ height: 250px; }}
-        .blob {{ width: 160px; height: 160px; }}
-        .blob.processing {{ width: 100px; height: 100px; }}
-        .lyrics-box {{
-            width: 90% !important;
-            left: 50% !important;
-            transform: translate(-50%, -50%) !important;
-            top: 60% !important;
-        }}
-        .lyric-line {{ font-size: 18px !important; }}
-        .vertical-wrapper {{
-            writing-mode: horizontal-tb !important;
-            height: auto !important;
-            flex-direction: column !important;
-            align-items: center !important;
-        }}
-        [data-testid="stSidebar"] {{ display: none; }}
-        [data-testid="stFileUploader"] section {{ padding: 15px !important; }}
-    }}
 </style>
 
 <div class="galaxy-bg">
     <div class="star-layer stars-1"></div>
     <div class="star-layer stars-2"></div>
     <div class="star-layer stars-3"></div>
-    <div class="lumine-layer">
-        {lumine_stars_html}
-    </div>
+    <div class="lumine-layer">{lumine_stars_html}</div>
 </div>
 """, unsafe_allow_html=True)
 
-# --- 2. 核心 API 配置 ---
+# --- 2. API 配置 ---
 api_key_default = ""
 loaded_from_secrets = False
 try:
@@ -243,12 +143,11 @@ else:
     aliyun_key = api_key_default
 
 layout_style = st.sidebar.selectbox("Composition", ("Stacked (Default)", "Asymmetric", "Diagonal", "Grouped"))
-
 client = None
 if aliyun_key:
     client = OpenAI(api_key=aliyun_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
 
-# --- 3. 业务逻辑函数 ---
+# --- 3. 核心逻辑 (恢复原始音乐逻辑) ---
 def search_music_from_itunes(query, style_category):
     base_url = "https://itunes.apple.com/search"
     clean_query = query.replace('，', ',').replace('、', ' ').replace('/', ' ').split(',')[0].strip()
@@ -274,6 +173,7 @@ def search_music_from_itunes(query, style_category):
         data = response.json()
         if data.get('resultCount', 0) > 0:
             results = data['results']
+            # 只做基础过滤
             safe_list = [r for r in results if "instrumental" in r.get('trackName','').lower() or "piano" in r.get('trackName','').lower() or "lofi" in r.get('trackName','').lower()]
             if safe_list: results = safe_list
             final_pool = [r for r in results if r.get('artworkUrl100')]
@@ -286,35 +186,27 @@ def search_music_from_itunes(query, style_category):
 def calculate_brightness(image):
     return ImageStat.Stat(image.convert('L')).mean[0]
 
-# --- 4. 主界面逻辑 ---
-
-# 头部设计
-st.markdown("""
-    <h2 style='text-align: center;'>APEIRON</h2>
-""", unsafe_allow_html=True)
-
+# --- 4. 主界面 ---
+st.markdown("<h2 style='text-align: center;'>APEIRON</h2>", unsafe_allow_html=True)
 stage = st.empty()
 uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
 
 if not uploaded_file:
     stage.markdown("""
-        <div class="blob-wrapper">
-            <div class="blob idle"></div>
-        </div>
+        <div class="blob-wrapper"><div class="blob idle"></div></div>
         <div style="text-align:center; color:rgba(255,255,255,0.7); font-size:12px; margin-top:-30px; letter-spacing:1px;">WAITING FOR VISUAL INPUT...</div>
     """, unsafe_allow_html=True)
 
 elif uploaded_file and client:
     stage.markdown("""
-        <div class="blob-wrapper">
-            <div class="blob processing"></div>
-        </div>
+        <div class="blob-wrapper"><div class="blob processing"></div></div>
         <div style="text-align:center; color:#fff; font-size:14px; margin-top:-30px; letter-spacing:2px; text-shadow:0 0 10px #fff;">PROCESSING...</div>
     """, unsafe_allow_html=True)
     
     time.sleep(0.5)
     
     try:
+        # --- 恢复原始图片读取 (不压缩) ---
         image = Image.open(uploaded_file)
         img_w, img_h = image.size
         display_height = int(700 * (img_h / img_w))
@@ -322,6 +214,7 @@ elif uploaded_file and client:
         bytes_data = uploaded_file.getvalue()
         base64_image = base64.b64encode(bytes_data).decode('utf-8')
 
+        # --- 恢复原始 Prompt (包含 Sport/Happy 等) ---
         prompt_text = """
         You are a minimalist aesthetic director. Analyze image. Return JSON.
         【1. Style】Traditional(Guzheng), Sport(Phonk), Happy(Pop), Industrial(Cinematic), Cyber(Phonk), Art(Piano), Healing(Lullaby), LightFood(Guitar), RichFood(Jazz), Urban(Lofi), Dim(Jazz).
@@ -343,6 +236,7 @@ elif uploaded_file and client:
         layout_pos = ai_result.get("layout_position", "bottom").lower()
         lyrics_list = ai_result.get("lyrics", [])
 
+        # 视觉混合模式
         is_food = style_cat in ["LightFood", "RichFood"]
         if is_food: op_high, op_low, blend_mode = "0.3)", "0.05)", "normal"
         elif brightness_val < 70: op_high, op_low, blend_mode = "0.5)", "0.15)", "multiply"
@@ -430,44 +324,22 @@ elif uploaded_file and client:
         <style>
             {font_imports}
             body {{ margin: 0; overflow: hidden; background-color: transparent; }}
-            
             .poster-container {{
                 position: relative; width: 100%; height: auto;
                 border-radius: 44px; overflow: hidden;
-                background-color: rgba(0,0,0,0.5);
-                backdrop-filter: blur(20px);
+                background-color: rgba(0,0,0,0.5); backdrop-filter: blur(20px);
                 border: 4px solid rgba(255, 255, 255, 0.15);
                 box-shadow: 0 30px 80px rgba(0,0,0,0.8);
                 animation: glass-pop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
             }}
-            @keyframes glass-pop {{ 
-                from {{ transform: scale(0.9) translateY(20px); opacity: 0; }} 
-                to {{ transform: scale(1) translateY(0); opacity: 1; }} 
-            }}
-            
+            @keyframes glass-pop {{ from {{ transform: scale(0.9) translateY(20px); opacity: 0; }} to {{ transform: scale(1) translateY(0); opacity: 1; }} }}
             .bg-image {{ display: block; width: 100%; height: auto; pointer-events: none; }}
-            
-            .overlay {{
-                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-                background: {overlay_css}; mix-blend-mode: {blend_mode}; pointer-events: none; z-index: 1;
-            }}
-            
-            .lyrics-box {{
-                position: absolute; {box_css} z-index: 999;
-                cursor: grab; cursor: -webkit-grab; pointer-events: auto; touch-action: none;
-                {lyrics_wrapper_css}
-            }}
-            .lyrics-box:active {{ cursor: grabbing; cursor: -webkit-grabbing; opacity: 0.8; transform: scale(1.02); }}
-            
-            .vertical-wrapper {{
-                writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 4px; height: 350px;
-                display: flex; gap: 15px; align-items: center;
-            }}
-            
+            .overlay {{ position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: {overlay_css}; mix-blend-mode: {blend_mode}; pointer-events: none; z-index: 1; }}
+            .lyrics-box {{ position: absolute; {box_css} z-index: 999; cursor: grab; {lyrics_wrapper_css} }}
+            .vertical-wrapper {{ writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 4px; height: 350px; display: flex; gap: 15px; align-items: center; }}
             .lyric-line {{ 
                 font-family: {config['font']}; font-size: {'36px' if 'Script' in config['font'] else '28px'}; 
-                color: {config['color']}; 
-                text-shadow: 0 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.8);
+                color: {config['color']}; text-shadow: 0 2px 4px rgba(0,0,0,0.9);
                 font-weight: 400; line-height: 1.5; padding: 0 10px; {lyric_line_css}
             }}
         </style>
@@ -485,17 +357,12 @@ elif uploaded_file and client:
             const container = document.querySelector("#container");
             let active = false;
             let currentX; let currentY; let initialX; let initialY; let xOffset = 0; let yOffset = 0;
-
             function dragStart(e) {{
                 if (e.type === "touchstart") {{ initialX = e.touches[0].clientX - xOffset; initialY = e.touches[0].clientY - yOffset; }} 
                 else {{ initialX = e.clientX - xOffset; initialY = e.clientY - yOffset; }}
                 if (dragItem.contains(e.target)) {{ active = true; }}
             }}
-
-            function dragEnd(e) {{ 
-                initialX = currentX; initialY = currentY; active = false; 
-            }}
-
+            function dragEnd(e) {{ initialX = currentX; initialY = currentY; active = false; }}
             function drag(e) {{
                 if (active) {{
                     e.preventDefault();
@@ -505,9 +372,7 @@ elif uploaded_file and client:
                     setTranslate(currentX, currentY, dragItem);
                 }}
             }}
-
             function setTranslate(xPos, yPos, el) {{ el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)"; }}
-
             dragItem.addEventListener("touchstart", dragStart, false);
             dragItem.addEventListener("mousedown", dragStart, false);
             window.addEventListener("touchend", dragEnd, false);
@@ -519,8 +384,12 @@ elif uploaded_file and client:
         """
 
         stage.empty()
-        st.audio(final_audio, format="audio/mp4", start_time=0)
-        st.components.v1.html(final_html, height=display_height + 80)
+        if final_audio:
+            st.audio(final_audio, format="audio/mp4", start_time=0)
+        else:
+            st.warning("Silent Mode (Music not found)")
+            
+        st.components.v1.html(final_html, height=display_height + 40)
 
     except Exception as e:
         st.error(f"Error: {e}")
